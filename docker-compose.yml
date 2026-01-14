@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: integration_postgres
+    environment:
+      POSTGRES_USER: integration_user
+      POSTGRES_PASSWORD: integration_pass
+      POSTGRES_DB: integration_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U integration_user -d integration_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  temporal:
+    image: temporalio/auto-setup:1.22.4
+    container_name: integration_temporal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=integration_user
+      - POSTGRES_PWD=integration_pass
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_DB=integration_db
+    ports:
+      - "7233:7233"
+
+  temporal-ui:
+    image: temporalio/ui:2.21.3
+    container_name: integration_temporal_ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+
+  worker:
+    build: .
+    container_name: integration_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://integration_user:integration_pass@postgres:5432/integration_db
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=integration-sync-queue
+      - SYNC_INTERVAL_MINUTES=5
+      - LOG_LEVEL=INFO
+      - QUICKBOOKS_CLIENT_ID=${QUICKBOOKS_CLIENT_ID}
+      - QUICKBOOKS_CLIENT_SECRET=${QUICKBOOKS_CLIENT_SECRET}
+      - QUICKBOOKS_REDIRECT_URI=${QUICKBOOKS_REDIRECT_URI:-http://localhost:8000/auth/quickbooks/callback}
+      - QUICKBOOKS_ENVIRONMENT=${QUICKBOOKS_ENVIRONMENT:-sandbox}
+    volumes:
+      - ./app:/app/app
+    command: python app/temporal/worker.py
+
+  api:
+    build: .
+    container_name: integration_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://integration_user:integration_pass@postgres:5432/integration_db
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=integration-sync-queue
+      - SYNC_INTERVAL_MINUTES=5
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - QUICKBOOKS_CLIENT_ID=${QUICKBOOKS_CLIENT_ID}
+      - QUICKBOOKS_CLIENT_SECRET=${QUICKBOOKS_CLIENT_SECRET}
+      - QUICKBOOKS_REDIRECT_URI=${QUICKBOOKS_REDIRECT_URI:-http://localhost:8000/auth/quickbooks/callback}
+      - QUICKBOOKS_ENVIRONMENT=${QUICKBOOKS_ENVIRONMENT:-sandbox}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
+
+volumes:
+  postgres_data:
