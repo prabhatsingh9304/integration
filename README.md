@@ -286,3 +286,14 @@ class RunIntegrationSyncService:
 - See last sync time, records synced, errors
 
 
+## Area of Improvement
+
+1. **Decouple Application Layer**: Decouple the Application Layer from infrastructure implementations.
+2. **Secret Management**: Move sensitive credentials from `.env` files to a secure secret manager (e.g. HashiCorp Vault).
+3. **Comprehensive Testing**: Increase test coverage by adding:
+    - **Unit Tests**: For domain entities and services.
+    - **Integration Tests**: For repositories and API endpoints.
+4. **Configuration Validation**: Add startup checks to validate all required environment variables are present and correctly formatted.
+
+
+
