@@ -1,5 +1,6 @@
 """IntegrationAccount repository implementation using SQLAlchemy."""
 from typing import Optional, List
+import uuid
 from sqlalchemy.orm import Session
 
 from app.domain.models.integration_account import (
@@ -62,7 +63,7 @@ class SQLAlchemyIntegrationAccountRepository(IntegrationAccountRepository):
         
         return self._to_domain(db_account, account.integration_type)
     
-    def find_by_id(self, account_id: int) -> Optional[IntegrationAccount]:
+    def find_by_id(self, account_id: uuid.UUID) -> Optional[IntegrationAccount]:
         """
         Find account by ID.
         WARNING: ID is not unique across integrations with separate schemas.
@@ -89,7 +90,6 @@ class SQLAlchemyIntegrationAccountRepository(IntegrationAccountRepository):
     
     def list_all(self) -> list[IntegrationAccount]:
         """List all integration accounts (across all integrations)."""
-        # Dictionary of Type -> Model
         models = [
             (IntegrationType.QUICKBOOKS, QuickBooksAccountModel)
         ]
@@ -101,7 +101,7 @@ class SQLAlchemyIntegrationAccountRepository(IntegrationAccountRepository):
             
         return accounts
     
-    def delete(self, account_id: int) -> bool:
+    def delete(self, account_id: uuid.UUID) -> bool:
         """Delete an integration account."""
         db_account = self.session.query(QuickBooksAccountModel).filter_by(id=account_id).first()
         if db_account:

@@ -1,6 +1,7 @@
 """IntegrationAccount repository port interface."""
 from abc import ABC, abstractmethod
 from typing import Optional
+import uuid
 
 from app.domain.models.integration_account import IntegrationAccount, IntegrationType
 
@@ -22,7 +23,7 @@ class IntegrationAccountRepository(ABC):
         pass
     
     @abstractmethod
-    def find_by_id(self, account_id: int) -> Optional[IntegrationAccount]:
+    def find_by_id(self, account_id: uuid.UUID) -> Optional[IntegrationAccount]:
         """
         Find account by ID.
         
@@ -63,7 +64,7 @@ class IntegrationAccountRepository(ABC):
         pass
     
     @abstractmethod
-    def delete(self, account_id: int) -> bool:
+    def delete(self, account_id: uuid.UUID) -> bool:
         """
         Delete an integration account.
         

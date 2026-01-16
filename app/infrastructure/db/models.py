@@ -22,19 +22,12 @@ class QuickBooksAccountModel(Base):
     __tablename__ = "accounts"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # integration_type is implicitly QUICKBOOKS.
-    # We keep external_account_id (Realm ID) as the main identifier.
-    
     external_account_id = Column(String(255), nullable=False)
-    
-    # Credentials
     access_token = Column(Text, nullable=False)
     refresh_token = Column(Text, nullable=False)
     token_expires_at = Column(DateTime, nullable=False)
     token_type = Column(String(50), nullable=False, default="Bearer")
-    
     status = Column(SQLEnum(AccountStatus), nullable=False, default=AccountStatus.ACTIVE)
-    
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -50,14 +43,11 @@ class QuickBooksSyncCursorModel(Base):
     __tablename__ = "sync_cursors"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
     external_account_id = Column(String(255), nullable=False)
     object_type = Column(SQLEnum(ObjectType), nullable=False)
-    
     last_synced_at = Column(DateTime, nullable=True)
     last_attempt_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     status = Column(SQLEnum(SyncStatus), nullable=False, default=SyncStatus.SUCCESS)
-    
     cursor_data = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
     records_synced = Column(Integer, nullable=False, default=0)
@@ -77,10 +67,8 @@ class QuickBooksCustomerModel(Base):
     __tablename__ = "customers"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
     external_account_id = Column(String(255), nullable=False)
     qbo_id = Column(String(255), nullable=False)
-    
     payload = Column(JSONB, nullable=False)
     last_updated_time = Column(DateTime, nullable=False)
     
@@ -99,12 +87,9 @@ class QuickBooksInvoiceModel(Base):
     __tablename__ = "invoices"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
     external_account_id = Column(String(255), nullable=False)
     qbo_id = Column(String(255), nullable=False)
-    
     customer_ref_value = Column(String(255), nullable=True)
-    
     payload = Column(JSONB, nullable=False)
     last_updated_time = Column(DateTime, nullable=False)
     

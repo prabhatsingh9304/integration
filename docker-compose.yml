@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: integration_postgres
+    container_name: integration_db
     environment:
       POSTGRES_USER: integration_user
       POSTGRES_PASSWORD: integration_pass
@@ -93,7 +93,7 @@ services:
       - "8000:8000"
     volumes:
       - ./app:/app/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 
 

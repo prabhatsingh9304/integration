@@ -59,12 +59,6 @@ class SQLAlchemySyncCursorRepository(SyncCursorRepository):
         self.session.commit()
         db_cursor = result.fetchone()
         
-        # result.fetchone() returns a Row, or if mapped, the object? 
-        # With .returning(ModelClass), SQLAlchemy usually returns Row objects that behave like the model or can be scalar.
-        # But for consistency, let's just query it freshly or cast.
-        # simpler: just use the returning values. DB cursor is a Row object here typically.
-        # Let's re-fetch to be safe and use ORM object.
-        
         db_cursor = self.session.query(ModelClass).filter_by(
             external_account_id=cursor.external_account_id,
             object_type=cursor.object_type

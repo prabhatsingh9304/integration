@@ -7,10 +7,10 @@ from app.domain.models.sync_cursor import ObjectType
 from app.domain.ports.account_repo import IntegrationAccountRepository
 from app.domain.ports.cursor_repo import SyncCursorRepository
 from app.domain.services.credential_policy import CredentialPolicy
+from app.domain.ports.object_repo import RawExternalObjectRepository
 from app.infrastructure.integrations.quickbooks.client import QuickBooksAPIClient
 from app.infrastructure.integrations.quickbooks.oauth import QuickBooksOAuthClient
 from app.application.services.sync_external_objects import SyncExternalObjectsService
-from app.infrastructure.db.repositories.quickbooks_repository import SQLAlchemyQuickBooksRepository
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class RunIntegrationSyncService:
         self,
         account_repo: IntegrationAccountRepository,
         cursor_repo: SyncCursorRepository,
-        quickbooks_repo: SQLAlchemyQuickBooksRepository = None
+        object_repo: RawExternalObjectRepository
     ):
         """
         Initialize service with repositories.
@@ -40,11 +40,11 @@ class RunIntegrationSyncService:
         Args:
             account_repo: Account repository
             cursor_repo: Cursor repository
-            quickbooks_repo: QuickBooks repository
+            object_repo: Object repository
         """
         self.account_repo = account_repo
         self.cursor_repo = cursor_repo
-        self.sync_service = SyncExternalObjectsService(cursor_repo, quickbooks_repo)
+        self.sync_service = SyncExternalObjectsService(cursor_repo, object_repo)
     
     async def run_sync(
         self,
@@ -89,7 +89,6 @@ class RunIntegrationSyncService:
             except Exception as e:
                 logger.error(f"Failed to sync {object_type.value}: {str(e)}")
                 results[object_type.value] = {"status": "error", "error": str(e)}
-                # Continue with other object types
         
         return results
     

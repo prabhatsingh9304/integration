@@ -1,5 +1,6 @@
 """IntegrationAccount aggregate root - represents a connected external account."""
 from dataclasses import dataclass, field
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -52,7 +53,7 @@ class IntegrationAccount:
     - credentials must be refreshed before expiry
     - only one sync workflow per integration account
     """
-    id: Optional[int]
+    id: Optional[uuid.UUID]
     integration_type: IntegrationType
     external_account_id: str
     credentials: Credentials

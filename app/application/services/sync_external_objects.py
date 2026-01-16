@@ -4,11 +4,12 @@ from typing import List
 import logging
 
 from app.domain.models.integration_account import IntegrationType
+from app.domain.models.raw_external_object import RawExternalObject
 from app.domain.models.sync_cursor import ObjectType, SyncCursor, SyncStatus
 from app.domain.ports.cursor_repo import SyncCursorRepository
+from app.domain.ports.object_repo import RawExternalObjectRepository
 from app.infrastructure.integrations.quickbooks.client import QuickBooksAPIClient
 from app.infrastructure.integrations.quickbooks.models import QuickBooksObject
-from app.infrastructure.db.repositories.quickbooks_repository import SQLAlchemyQuickBooksRepository
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +30,17 @@ class SyncExternalObjectsService:
     def __init__(
         self,
         cursor_repo: SyncCursorRepository,
-        quickbooks_repo: SQLAlchemyQuickBooksRepository = None
+        object_repo: RawExternalObjectRepository
     ):
         """
         Initialize service with repositories.
         
         Args:
             cursor_repo: Cursor repository
-            quickbooks_repo: QuickBooks repository
+            object_repo: Object repository (generic)
         """
         self.cursor_repo = cursor_repo
-        self.quickbooks_repo = quickbooks_repo
+        self.object_repo = object_repo
     
     async def sync_quickbooks_objects(
         self,
@@ -110,11 +111,21 @@ class SyncExternalObjectsService:
                     logger.info(f"No more {object_type.value} objects to sync")
                     break
                 
+                # Convert DTOs to Domain Entities
+                raw_objects = []
+                for obj in qb_objects:
+                    raw_objects.append(RawExternalObject(
+                        id=None,
+                        integration_type=integration_type,
+                        external_account_id=external_account_id,
+                        object_type=object_type,
+                        external_object_id=obj.id,
+                        payload=obj.raw_payload,
+                        last_updated_time=obj.last_updated_time
+                    ))
+                
                 # Persist objects (UPSERT)
-                if object_type == ObjectType.CUSTOMER:
-                    self.quickbooks_repo.save_customers_batch(qb_objects, external_account_id)
-                elif object_type == ObjectType.INVOICE:
-                    self.quickbooks_repo.save_invoices_batch(qb_objects, external_account_id)
+                self.object_repo.save_batch(raw_objects)
 
                 # Calculate latest timestamp for cursor
                 latest_timestamp = max(obj.last_updated_time for obj in qb_objects)
@@ -145,7 +156,6 @@ class SyncExternalObjectsService:
             
         except Exception as e:
             logger.error(f"Sync failed for {object_type.value}: {str(e)}")
-            # Save state with error, preserving cursor_data for resumption
             cursor.mark_failure(str(e), cursor_data={"start_position": start_position})
             self.cursor_repo.save(cursor)
             raise

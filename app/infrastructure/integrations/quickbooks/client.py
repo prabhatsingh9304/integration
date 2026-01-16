@@ -23,7 +23,7 @@ class QuickBooksAPIClient:
     """
     
     API_VERSION = "v3"
-    MAX_RESULTS = 1000  # QuickBooks max per page
+    MAX_RESULTS = 1000
     
     def __init__(self, realm_id: str, access_token: str):
         """
@@ -57,11 +57,10 @@ class QuickBooksAPIClient:
         query = "SELECT * FROM Customer"
         
         if updated_since:
-            # QuickBooks uses specific datetime format
             formatted_date = updated_since.strftime("%Y-%m-%dT%H:%M:%S")
-            # If naive, assume UTC and append Z. If aware, it will be handled by strftime if using %z, 
-            # but simplest here for the naive DB value is just append Z.
-            query += f" WHERE MetaData.LastUpdatedTime > '{formatted_date}Z'"
+            query += f" WHERE Active IN (true, false) AND MetaData.LastUpdatedTime > '{formatted_date}Z'"
+        else:
+            query += " WHERE Active IN (true, false)"
         
         query += " ORDERBY MetaData.LastUpdatedTime"
         
@@ -161,14 +160,11 @@ class QuickBooksAPIClient:
         """
         metadata = data.get("MetaData", {})
         
-        # Parse LastUpdatedTime or default to now (UTC aware)
         ts_str = metadata.get("LastUpdatedTime")
         if ts_str:
-            # Handle Z suffix for ISO format
             if ts_str.endswith("Z"):
                 ts_str = ts_str.replace("Z", "+00:00")
             last_updated = datetime.fromisoformat(ts_str)
-            # Ensure aware
             if last_updated.tzinfo is None:
                 last_updated = last_updated.replace(tzinfo=timezone.utc)
         else:
@@ -194,7 +190,6 @@ class QuickBooksAPIClient:
         """
         metadata = data.get("MetaData", {})
         
-        # Parse LastUpdatedTime or default to now (UTC aware)
         ts_str = metadata.get("LastUpdatedTime")
         if ts_str:
             if ts_str.endswith("Z"):

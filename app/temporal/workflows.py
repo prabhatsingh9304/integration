@@ -48,9 +48,9 @@ class IntegrationSyncWorkflow:
         # Run one sync cycle
         results = {}
         try:
-            # Execute sync via activity - use function reference, not string!
+            # Execute sync via activity
             results = await workflow.execute_activity(
-                run_integration_sync,  # Function reference instead of string
+                run_integration_sync,
                 args=[integration_type, external_account_id],
                 start_to_close_timeout=timedelta(minutes=10),
                 retry_policy=RetryPolicy(
